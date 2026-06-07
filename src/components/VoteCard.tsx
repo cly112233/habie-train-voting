@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
+import DetailModal from "./DetailModal";
+
 interface VoteCardProps {
   type: "character" | "modifier";
   id: number;
   name: string;
   username: string;
   subtitle?: string;
+  shortDesc?: string;
   description: string;
   voteCount: number;
   userVoted: boolean;
@@ -14,58 +18,84 @@ interface VoteCardProps {
 }
 
 export default function VoteCard({
+  type,
   name,
   username,
   subtitle,
+  shortDesc,
   description,
   voteCount,
   userVoted,
   onVote,
   disabled,
 }: VoteCardProps) {
+  const [showDetail, setShowDetail] = useState(false);
+
   return (
-    <div className={`bg-white rounded-3xl border p-5 transition-all ${
-      userVoted ? "border-accent/50 ring-2 ring-accent/20" : "border-border hover:shadow-md"
-    }`}>
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-foreground text-lg">{name}</h3>
-            {subtitle && (
-              <span className="px-2.5 py-0.5 rounded-full bg-accent-light text-accent text-xs font-medium">
-                {subtitle}
-              </span>
+    <>
+      <div
+        onClick={() => setShowDetail(true)}
+        className={`bg-white rounded-3xl border p-5 transition-all cursor-pointer flex flex-col h-[220px] ${
+          userVoted ? "border-accent/50 ring-2 ring-accent/20" : "border-border hover:shadow-md hover:border-accent/30"
+        }`}
+      >
+        {/* Header */}
+        <div className="shrink-0 mb-2 flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-foreground text-base truncate">{name}</h3>
+              {subtitle && (
+                <span className="px-2 py-0.5 rounded-full bg-accent-light text-accent text-xs font-medium shrink-0">
+                  {subtitle}
+                </span>
+              )}
+            </div>
+            {shortDesc && (
+              <p className="text-muted text-xs mt-0.5 truncate">{shortDesc}</p>
             )}
+            <p className="text-xs text-muted mt-1">
+              作者：<span className="text-foreground font-medium">{username}</span>
+            </p>
           </div>
-          <p className="text-xs text-muted">
-            作者：<span className="text-foreground font-medium">{username}</span>
-          </p>
+          {userVoted && (
+            <span className="shrink-0 ml-2 px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-xs font-medium">
+              已投票
+            </span>
+          )}
         </div>
-        {userVoted && (
-          <span className="shrink-0 px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-medium">
-            ✓ 已投票
-          </span>
-        )}
+
+        {/* Description - 两行截断 */}
+        <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2 mb-auto">
+          {description}
+        </p>
+
+        {/* Actions */}
+        <div className="shrink-0 flex items-center justify-between pt-3 mt-2 border-t border-border" onClick={(e) => e.stopPropagation()}>
+          <span className="text-xs text-muted">🗳️ {voteCount} 票</span>
+          <button
+            onClick={onVote}
+            disabled={disabled}
+            className={`px-5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              userVoted
+                ? "bg-green-50 text-green-600 cursor-default"
+                : "bg-accent text-white hover:opacity-90"
+            } disabled:opacity-50`}
+          >
+            {userVoted ? "✓ 已投票" : "投票"}
+          </button>
+        </div>
       </div>
 
-      <p className="text-sm text-foreground/80 leading-relaxed mb-4 whitespace-pre-wrap line-clamp-3">
-        {description}
-      </p>
-
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted">🗳️ {voteCount} 票</span>
-        <button
-          onClick={onVote}
-          disabled={disabled}
-          className={`px-5 py-2 rounded-2xl text-sm font-medium transition-all ${
-            userVoted
-              ? "bg-green-50 text-green-600 cursor-default"
-              : "bg-accent text-white hover:opacity-90"
-          } disabled:opacity-50`}
-        >
-          {userVoted ? "已投票" : "投票"}
-        </button>
-      </div>
-    </div>
+      <DetailModal
+        isOpen={showDetail}
+        onClose={() => setShowDetail(false)}
+        type={type}
+        name={name}
+        subtitle={subtitle}
+        shortDesc={shortDesc}
+        description={description}
+        username={username}
+      />
+    </>
   );
 }

@@ -122,9 +122,9 @@ export default function BrowsePage() {
                 />
                 {isAdmin && (
                   <button
-                    onClick={() => handleDelete("character", c.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete("character", c.id); }}
                     disabled={deletingId === c.id}
-                    className="absolute top-3 right-3 px-3 py-1 rounded-xl bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100 transition-colors disabled:opacity-50"
+                    className="absolute top-3 right-3 px-3 py-1 rounded-xl bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100 transition-colors disabled:opacity-50 z-10"
                   >
                     {deletingId === c.id ? "删除中..." : "🗑 删除"}
                   </button>
@@ -158,9 +158,9 @@ export default function BrowsePage() {
               />
               {isAdmin && (
                 <button
-                  onClick={() => handleDelete("modifier", m.id)}
+                  onClick={(e) => { e.stopPropagation(); handleDelete("modifier", m.id); }}
                   disabled={deletingId === m.id}
-                  className="absolute top-3 right-3 px-3 py-1 rounded-xl bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100 transition-colors disabled:opacity-50"
+                  className="absolute top-3 right-3 px-3 py-1 rounded-xl bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100 transition-colors disabled:opacity-50 z-10"
                 >
                   {deletingId === m.id ? "删除中..." : "🗑 删除"}
                 </button>

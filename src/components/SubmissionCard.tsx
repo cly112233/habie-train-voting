@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ReactionButtons from "./ReactionButtons";
 import SuggestModal from "./SuggestModal";
+import DetailModal from "./DetailModal";
 
 interface ShopItem {
   name: string;
@@ -20,6 +21,7 @@ interface SubmissionCardProps {
   description: string;
   extra?: { label: string; value: string }[];
   shopItems?: ShopItem[];
+  story?: string;
   likeCount: number;
   dislikeCount: number;
   voteCount: number;
@@ -37,72 +39,62 @@ export default function SubmissionCard({
   description,
   extra,
   shopItems,
+  story,
   likeCount,
   dislikeCount,
   voteCount,
   userReaction,
 }: SubmissionCardProps) {
   const [showSuggest, setShowSuggest] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+
+  const storyText = extra?.find((e) => e.label === "角色故事" || e.label === "故事")?.value || "";
 
   return (
     <>
-      <div className="bg-white rounded-3xl border border-border p-5 hover:shadow-md transition-shadow">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-foreground text-lg">{name}</h3>
-              {subtitle && (
-                <span className="px-2.5 py-0.5 rounded-full bg-accent-light text-accent text-xs font-medium">
-                  {subtitle}
-                </span>
-              )}
-            </div>
-            {shortDesc && (
-              <p className="text-muted text-xs mt-0.5">{shortDesc}</p>
+      <div
+        onClick={() => setShowDetail(true)}
+        className="bg-white rounded-3xl border border-border p-5 hover:shadow-md hover:border-accent/30 transition-all cursor-pointer flex flex-col h-[220px]"
+      >
+        {/* Header - 固定高度 */}
+        <div className="shrink-0 mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-foreground text-base truncate">{name}</h3>
+            {subtitle && (
+              <span className="px-2 py-0.5 rounded-full bg-accent-light text-accent text-xs font-medium shrink-0">
+                {subtitle}
+              </span>
             )}
-            <p className="text-xs text-muted mt-1">
-              作者：<span className="text-foreground font-medium">{username}</span>
-            </p>
           </div>
+          {shortDesc && (
+            <p className="text-muted text-xs mt-0.5 truncate">{shortDesc}</p>
+          )}
+          <p className="text-xs text-muted mt-1">
+            作者：<span className="text-foreground font-medium">{username}</span>
+          </p>
         </div>
 
-        {/* Description */}
-        <p className="text-sm text-foreground/80 leading-relaxed mb-3 whitespace-pre-wrap">
+        {/* Description - 两行截断 */}
+        <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2 mb-auto">
           {description}
         </p>
 
-        {/* Shop Items */}
-        {shopItems && shopItems.length > 0 && (
-          <div className="mb-3">
-            <span className="text-xs text-muted font-medium">🏪 角色商店</span>
-            <div className="mt-1.5 space-y-1">
-              {shopItems.map((item, i) => (
-                <div key={i} className="flex items-center justify-between bg-accent-light/30 rounded-xl px-3 py-2 text-sm">
-                  <span className="text-foreground font-medium">{item.name}</span>
-                  <span className="text-accent text-xs">{item.price}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Extra fields (story etc) */}
-        {extra && extra.length > 0 && (
-          <div className="space-y-2 mb-3">
-            {extra.map((e) => (
-              e.value && (
-                <div key={e.label} className="text-sm">
-                  <span className="text-muted">{e.label}：</span>
-                  <span className="text-foreground">{e.value}</span>
-                </div>
-              )
-            ))}
-          </div>
-        )}
+        {/* Footer info */}
+        <div className="shrink-0 flex items-center gap-2 mt-2">
+          {shopItems && shopItems.length > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-lg bg-accent-light/50 text-accent">
+              🏪 x{shopItems.length}
+            </span>
+          )}
+          {storyText && (
+            <span className="text-xs px-2 py-0.5 rounded-lg bg-purple-50 text-purple-500">
+              📖 有故事
+            </span>
+          )}
+        </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-3 border-t border-border">
+        <div className="shrink-0 flex items-center justify-between pt-3 mt-2 border-t border-border" onClick={(e) => e.stopPropagation()}>
           <ReactionButtons
             submissionType={type}
             submissionId={id}
@@ -111,16 +103,29 @@ export default function SubmissionCard({
             initialUserReaction={userReaction}
           />
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted">🗳️ {voteCount} 票</span>
+            <span className="text-xs text-muted">🗳️ {voteCount}</span>
             <button
               onClick={() => setShowSuggest(true)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm text-muted hover:bg-accent-light hover:text-accent transition-all"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs text-muted hover:bg-accent-light hover:text-accent transition-all"
             >
               💡 建议
             </button>
           </div>
         </div>
       </div>
+
+      <DetailModal
+        isOpen={showDetail}
+        onClose={() => setShowDetail(false)}
+        type={type}
+        name={name}
+        subtitle={subtitle}
+        shortDesc={shortDesc}
+        description={description}
+        shopItems={shopItems}
+        story={storyText}
+        username={username}
+      />
 
       <SuggestModal
         submissionType={type}

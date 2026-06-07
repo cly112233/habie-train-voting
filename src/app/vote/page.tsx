@@ -186,6 +186,7 @@ function VoteContent() {
                 name={s.name}
                 username={s.username || "未知"}
                 subtitle={"role" in s ? (s as Character).role : undefined}
+                shortDesc={"short_desc" in s ? (s as Character).short_desc : undefined}
                 description={s.description}
                 voteCount={s.vote_count || 0}
                 userVoted={false}
