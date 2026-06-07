@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import ReactionButtons from "./ReactionButtons";
 import SuggestModal from "./SuggestModal";
-import DetailModal from "./DetailModal";
 
 interface ShopItem {
   name: string;
@@ -45,15 +45,19 @@ export default function SubmissionCard({
   voteCount,
   userReaction,
 }: SubmissionCardProps) {
+  const router = useRouter();
   const [showSuggest, setShowSuggest] = useState(false);
-  const [showDetail, setShowDetail] = useState(false);
 
   const storyText = extra?.find((e) => e.label === "角色故事" || e.label === "故事")?.value || "";
+
+  const handleClick = () => {
+    router.push(`/detail/${type}/${id}`);
+  };
 
   return (
     <>
       <div
-        onClick={() => setShowDetail(true)}
+        onClick={handleClick}
         className="bg-white rounded-3xl border border-border p-5 hover:shadow-md hover:border-accent/30 transition-all cursor-pointer flex flex-col h-[220px]"
       >
         {/* Header - 固定高度 */}
@@ -113,19 +117,6 @@ export default function SubmissionCard({
           </div>
         </div>
       </div>
-
-      <DetailModal
-        isOpen={showDetail}
-        onClose={() => setShowDetail(false)}
-        type={type}
-        name={name}
-        subtitle={subtitle}
-        shortDesc={shortDesc}
-        description={description}
-        shopItems={shopItems}
-        story={storyText}
-        username={username}
-      />
 
       <SuggestModal
         submissionType={type}
