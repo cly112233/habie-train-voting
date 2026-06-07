@@ -8,6 +8,15 @@ import RankingCard from "@/components/RankingCard";
 import AuthGuard from "@/components/AuthGuard";
 import type { CycleStatus, Character, Modifier } from "@/types";
 
+interface CycleInfo {
+  id: number;
+  type: string;
+  start_date: string;
+  voting_end_date: string;
+  is_current: boolean;
+  phase: string;
+}
+
 function VoteContent() {
   const [tab, setTab] = useState("character");
   const [charStatus, setCharStatus] = useState<CycleStatus | null>(null);
@@ -17,9 +26,13 @@ function VoteContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // 往期周期列表
+  const [cycles, setCycles] = useState<CycleInfo[]>([]);
+  const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
+
   const status = tab === "character" ? charStatus : modStatus;
 
-  // 加载周期状态
+  // 加载周期状态 + 周期列表
   useEffect(() => {
     Promise.all([
       fetch("/api/cycles/current?type=character").then((r) => r.json()),
@@ -30,25 +43,53 @@ function VoteContent() {
     });
   }, []);
 
-  // 加载数据
+  // 加载周期列表
+  useEffect(() => {
+    fetch(`/api/cycles?type=${tab}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) {
+          setCycles(d.data);
+          // 默认选中：如果是投票期就选当前周期，否则选上一个
+          if (d.data.length > 0) {
+            const current = d.data.find((c: CycleInfo) => c.is_current);
+            if (current && current.phase === "voting") {
+              setSelectedCycleId(current.id);
+            } else if (d.data.length >= 2 && current) {
+              // 当前不是投票期，默认显示上一周期
+              setSelectedCycleId(d.data[1].id);
+            } else {
+              setSelectedCycleId(d.data[0].id);
+            }
+          }
+        }
+      });
+  }, [tab]);
+
+  // 加载选中周期的数据
   const loadData = useCallback(async () => {
-    if (!status) return;
+    if (!selectedCycleId) return;
     setLoading(true);
 
-    if (status.isVoting) {
-      // 投票中 — 加载当前周期投稿
+    const selectedCycle = cycles.find((c) => c.id === selectedCycleId);
+    const isCurrentVoting = selectedCycle?.is_current && status?.isVoting;
+
+    if (isCurrentVoting) {
+      // 当前投票期 → 加载投稿列表
       const api = tab === "character" ? "/api/characters" : "/api/modifiers";
-      const res = await fetch(`${api}?cycle_id=${status.cycle?.id}`);
+      const res = await fetch(`${api}?cycle_id=${selectedCycleId}`);
       const data = await res.json();
       if (data.success) setSubmissions(data.data);
     } else {
-      // 非投票时间 — 显示上一周期排名
-      const res = await fetch(`/api/vote/results?type=${tab}`);
+      // 往期或非投票期 → 加载排名
+      setSubmissions([]);
+      const res = await fetch(`/api/vote/results?type=${tab}&cycle_id=${selectedCycleId}`);
       const data = await res.json();
       if (data.success) setRankings(data.data);
+      else setRankings([]);
     }
     setLoading(false);
-  }, [tab, status]);
+  }, [tab, selectedCycleId, cycles, status]);
 
   useEffect(() => {
     loadData();
@@ -63,9 +104,8 @@ function VoteContent() {
         body: JSON.stringify({ type: tab, submissionId }),
       });
       const data = await res.json();
-
       if (data.success) {
-        loadData(); // 刷新
+        loadData();
       } else {
         setError(data.error || "投票失败");
       }
@@ -73,6 +113,9 @@ function VoteContent() {
       setError("网络错误");
     }
   };
+
+  const selectedCycle = cycles.find((c) => c.id === selectedCycleId);
+  const isCurrentVoting = selectedCycle?.is_current && status?.isVoting;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -88,15 +131,33 @@ function VoteContent() {
             { key: "modifier", label: "✨ 修饰符投票" },
           ]}
           activeTab={tab}
-          onTabChange={(t) => { setTab(t); setError(""); }}
+          onTabChange={(t) => { setTab(t); setError(""); setSelectedCycleId(null); }}
         />
       </div>
 
       {status && (
-        <div className="mb-6">
+        <div className="mb-4">
           <CycleStatusBanner status={status} />
         </div>
       )}
+
+      {/* 往期选择器 */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-foreground mb-2">📅 选择周期</label>
+        <select
+          className="w-full md:w-72 px-4 py-2.5 rounded-2xl border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
+          value={selectedCycleId || ""}
+          onChange={(e) => setSelectedCycleId(Number(e.target.value))}
+        >
+          {cycles.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.start_date} ~ {c.voting_end_date}
+              {c.is_current ? " 【当前】" : ""}
+              {!c.is_current && c.phase === "results" ? " 【已结束】" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm">
@@ -108,7 +169,7 @@ function VoteContent() {
         <div className="text-center py-16">
           <div className="animate-pulse text-muted text-lg">加载中...</div>
         </div>
-      ) : status?.isVoting ? (
+      ) : isCurrentVoting ? (
         submissions.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-4">📭</div>
@@ -138,12 +199,12 @@ function VoteContent() {
         <div className="text-center py-16">
           <div className="text-5xl mb-4">📋</div>
           <h2 className="text-xl font-semibold text-foreground mb-2">暂无排名数据</h2>
-          <p className="text-muted text-sm">上一周期没有投票数据</p>
+          <p className="text-muted text-sm">该周期没有投票数据</p>
         </div>
       ) : (
         <div className="space-y-3">
           <h3 className="font-medium text-foreground mb-3">
-            🏆 {tab === "character" ? "角色" : "修饰符"} — 上一周期排名
+            🏆 {tab === "character" ? "角色" : "修饰符"} — {selectedCycle?.start_date} ~ {selectedCycle?.voting_end_date} 排名
           </h3>
           {rankings.map((r) => (
             <RankingCard
