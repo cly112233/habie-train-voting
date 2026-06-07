@@ -35,6 +35,10 @@ function ProfileContent() {
   const [error, setError] = useState("");
   const [resubmitting, setResubmitting] = useState<number | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -61,6 +65,46 @@ function ProfileContent() {
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
+  };
+
+  const startEdit = () => {
+    if (!profile) return;
+    setEditUsername(profile.user.username);
+    setEditBio(profile.user.bio || "");
+    setEditing(true);
+    setError("");
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setError("");
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editUsername.trim()) {
+      setError("用户名不能为空");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: editUsername.trim(), bio: editBio.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditing(false);
+        loadProfile();
+      } else {
+        setError(data.error || "保存失败");
+      }
+    } catch {
+      setError("网络错误");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,27 +200,78 @@ function ProfileContent() {
 
           {/* 名字 + ID */}
           <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground">{user.username}</h1>
-              {user.is_admin === 1 && (
-                <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-xs font-medium">
-                  管理员
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-muted">ID: {user.id}</p>
+            {editing ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  className="w-full px-3 py-1.5 rounded-xl border border-border text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  maxLength={20}
+                />
+                <p className="text-xs text-muted">ID: {user.id}</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-foreground">{user.username}</h1>
+                  {user.is_admin === 1 && (
+                    <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-xs font-medium">
+                      管理员
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted">ID: {user.id}</p>
+              </>
+            )}
           </div>
 
-          {/* 退出按钮 */}
-          <button
-            onClick={handleLogout}
-            className="shrink-0 px-4 py-2 rounded-2xl border border-border text-sm text-muted hover:text-danger hover:border-danger/30 hover:bg-red-50 transition-all"
-          >
-            退出登录
-          </button>
+          {/* 右侧按钮组 */}
+          <div className="shrink-0 flex flex-col gap-2">
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 rounded-2xl border border-border text-sm text-muted hover:text-danger hover:border-danger/30 hover:bg-red-50 transition-all"
+            >
+              退出登录
+            </button>
+            {editing ? (
+              <div className="flex gap-1">
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="flex-1 px-3 py-1.5 rounded-xl bg-accent text-white text-xs font-medium hover:opacity-90 disabled:opacity-50"
+                >
+                  {saving ? "保存中" : "保存"}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="flex-1 px-3 py-1.5 rounded-xl border border-border text-muted text-xs hover:bg-accent-light"
+                >
+                  取消
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={startEdit}
+                className="px-4 py-2 rounded-2xl border border-border text-sm text-accent hover:bg-accent-light transition-all"
+              >
+                ✏️ 编辑
+              </button>
+            )}
+          </div>
         </div>
 
-        {user.bio ? (
+        {/* 简介 */}
+        {editing ? (
+          <textarea
+            className="mt-4 w-full px-3 py-2 rounded-xl border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+            rows={2}
+            placeholder="向大家介绍一下自己"
+            value={editBio}
+            onChange={(e) => setEditBio(e.target.value)}
+            maxLength={100}
+          />
+        ) : user.bio ? (
           <p className="mt-4 text-sm text-foreground/80 leading-relaxed">{user.bio}</p>
         ) : (
           <p className="mt-4 text-sm text-muted italic">暂无简介</p>
