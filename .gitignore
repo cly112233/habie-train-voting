@@ -42,6 +42,11 @@ next-env.d.ts
 
 # database (contains user data — dev only)
 data.db
+data.db-shm
+data.db-wal
 
 # user uploaded avatars (dev only)
 public/uploads/
+
+# cloudflare tunnel binary
+cloudflared.exe

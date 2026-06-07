@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = bcrypt.hashSync(password, 10);
     // 管理员ID列表
-    const ADMIN_IDS = ["2827186780"];
+    const ADMIN_IDS = ["2827186780", "guanli"];
     const isAdmin = ADMIN_IDS.includes(id) ? 1 : 0;
     db.prepare(
       "INSERT INTO users (id, username, password_hash, bio, is_admin) VALUES (?, ?, ?, ?, ?)"

@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 确保管理员ID始终有管理员权限
-    if (id === "2827186780" && !user.is_admin) {
+    const ADMIN_IDS = ["2827186780", "guanli"];
+    if (ADMIN_IDS.includes(id) && !user.is_admin) {
       db.prepare("UPDATE users SET is_admin = 1 WHERE id = ?").run(id);
       user.is_admin = 1;
     }
