@@ -40,7 +40,7 @@ echo.
 cd /d "%INSTALL_DIR%"
 
 echo Installing dependencies...
-call npm install --omit=dev
+call npm install
 if %errorlevel% neq 0 (
     echo FAILED: npm install error.
     pause
