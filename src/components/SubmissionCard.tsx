@@ -75,7 +75,7 @@ export default function SubmissionCard({
         </div>
 
         {/* Description - 两行截断 */}
-        <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2 mb-auto">
+        <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2 mb-auto break-words">
           {description}
         </p>
 
