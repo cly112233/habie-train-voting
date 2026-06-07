@@ -1,60 +1,49 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: 无论如何窗口都不要秒关
-if not defined IS_RUNNING (
-    set IS_RUNNING=1
-    cmd /c "%~f0" %*
-    exit /b
-)
-
-chcp 65001 >nul
-title 哈比列车 - 服务器安装
+title Habie Train - Setup
 cd /d "%~dp0"
 
 echo.
-echo   ╔══════════════════════════════════╗
-echo   ║  🎭 哈比列车投票 - 服务器安装  ║
-echo   ╚══════════════════════════════════╝
+echo   ======================================
+echo     Habie Train Voting - Server Setup
+echo   ======================================
 echo.
 
-:: ===== Check admin =====
+:: Check admin
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo   ╔══════════════════════════════════╗
-    echo   ║    注意：请右键以管理员身份运行  ║
-    echo   ╚══════════════════════════════════╝
+    echo   NOTE: Not running as Administrator.
+    echo   Firewall and auto-start will be skipped.
     echo.
-    echo   当前不是管理员模式，将跳过防火墙和自启配置。
-    echo   如果只想测试运行，可以继续。
-    echo.
-    choice /c yn /m "是否继续（无管理员权限）?"
+    choice /c yn /m "Continue without admin rights?"
     if !errorlevel! equ 2 ( pause & goto :end )
     set "NO_ADMIN=1"
 )
 
 set "INSTALL_DIR=C:\habie-train-voting"
 
-:: ===== Step 1: Node.js =====
+:: ===== 1. Node.js =====
 echo.
 echo   [1/5] Checking Node.js...
 where node >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
-    echo   Node.js not found. Please install it first:
-    echo   https://nodejs.org (download LTS version)
+    echo   Node.js not found!
+    echo   Please download and install Node.js LTS from:
+    echo   https://nodejs.org
     echo.
-    echo   After installing, run this script again.
+    echo   Then re-run this script.
     pause
     goto :end
 )
 for /f "tokens=*" %%a in ('node --version') do echo        Node.js %%a - OK
 
-:: ===== Step 2: Copy files =====
+:: ===== 2. Copy files =====
 echo.
-echo   [2/5] Deploying to %INSTALL_DIR% ...
+echo   [2/5] Deploying files to %INSTALL_DIR% ...
 if exist "%INSTALL_DIR%" (
-    echo        Updating (existing data preserved)...
+    echo        Updating (keeping existing data)...
     xcopy /E /Y /Q "%~dp0src" "%INSTALL_DIR%\src\" >nul
     xcopy /E /Y /Q "%~dp0public" "%INSTALL_DIR%\public\" >nul
     xcopy /Y /Q "%~dp0*.json" "%INSTALL_DIR%\" >nul
@@ -69,29 +58,29 @@ echo        Done.
 
 cd /d "%INSTALL_DIR%"
 
-:: ===== Step 3: npm install =====
+:: ===== 3. npm install =====
 echo.
-echo   [3/5] Installing dependencies (needs network, ~1-2 min)...
+echo   [3/5] Installing dependencies (needs internet, ~1-2 min)...
 call npm install --omit=dev
 if !errorlevel! neq 0 (
-    echo   [X] npm install failed. Check network and try again.
+    echo   [FAIL] npm install failed. Check internet connection.
     pause
     goto :end
 )
 echo        Done.
 
-:: ===== Step 4: Build =====
+:: ===== 4. Build =====
 echo.
 echo   [4/5] Building project...
 call npm run build
 if !errorlevel! neq 0 (
-    echo   [X] Build failed.
+    echo   [FAIL] Build failed.
     pause
     goto :end
 )
 echo        Done.
 
-:: ===== Step 5: Firewall + Auto-start =====
+:: ===== 5. Firewall + Auto-start =====
 echo.
 echo   [5/5] Firewall + Auto-start...
 if not defined NO_ADMIN (
@@ -105,7 +94,7 @@ if not defined NO_ADMIN (
     echo        Skipped (no admin rights)
 )
 
-:: ===== Start Server =====
+:: ===== Start =====
 echo.
 echo   Starting server...
 start "habie-server" /B npm start
@@ -115,23 +104,23 @@ timeout /t 5 >nul
 curl -s http://localhost:3000 >nul 2>&1
 if %errorlevel% equ 0 (
     echo.
-    echo   ╔══════════════════════════════════════╗
-    echo   ║        ✅ INSTALL SUCCESS!           ║
-    echo   ╚══════════════════════════════════════╝
+    echo   ======================================
+    echo          SETUP COMPLETE!
+    echo   ======================================
     echo.
-    echo   🌐 Local:  http://localhost:3000
+    echo   URL:      http://localhost:3000
+    echo   Admin:    guanli / yi2san4wu6
+    echo   Folder:   %INSTALL_DIR%
     echo.
-    echo   📌 Admin login:
-    echo       ID:     guanli
-    echo       Pass:   yi2san4wu6
-    echo.
-    echo   📂 Folder: %INSTALL_DIR%
-    echo   🟢 start.bat  🔴 stop.bat
-    echo   🔄 Auto-start on boot: YES
+    echo   Start:    double-click start.bat
+    echo   Stop:     double-click stop.bat
+    echo   Auto-run on boot: YES
     echo.
 ) else (
     echo.
-    echo   [X] Server may not be running. Start it manually:
+    echo   [WARN] Server may not be running.
+    echo   Try starting it manually:
+    echo.
     echo       cd /d %INSTALL_DIR%
     echo       npm start
     echo.
