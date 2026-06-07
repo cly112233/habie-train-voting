@@ -48,5 +48,3 @@ data.db-wal
 # user uploaded avatars (dev only)
 public/uploads/
 
-# cloudflare tunnel binary
-cloudflared.exe

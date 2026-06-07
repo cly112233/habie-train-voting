@@ -18,13 +18,7 @@ if %errorlevel% neq 0 (
 
 echo Killing old processes...
 taskkill /f /im node.exe >nul 2>&1
-
-echo Releasing port 80...
-net stop http /y >nul 2>&1
-sc config http start=disabled >nul 2>&1
-
-echo Opening firewall port 80...
-netsh advfirewall firewall add rule name="HabieTrain80" dir=in action=allow protocol=tcp localport=80 >nul 2>&1
+taskkill /f /im cloudflared.exe >nul 2>&1
 
 echo Copying files to %DIR%...
 if not exist "%DIR%" mkdir "%DIR%"
@@ -34,6 +28,7 @@ xcopy /Y /Q "%~dp0*.json" "%DIR%\" >nul
 xcopy /Y /Q "%~dp0*.mjs" "%DIR%\" >nul
 xcopy /Y /Q "%~dp0*.ts" "%DIR%\" >nul
 xcopy /Y /Q "%~dp0*.bat" "%DIR%\" >nul
+xcopy /Y /Q "%~dp0cloudflared.exe" "%DIR%\" >nul
 del "%DIR%\.env" >nul 2>&1
 
 cd /d "%DIR%"
@@ -50,23 +45,30 @@ echo Configuring auto-start...
 schtasks /delete /tn "HabieTrain" /f >nul 2>&1
 schtasks /create /tn "HabieTrain" /tr "cmd /c cd /d %DIR% && npm start" /sc onstart /delay 0000:15 /ru SYSTEM /f >nul 2>&1
 
-echo Starting server on port 80...
+echo Starting local server...
 start "habie-server" /B npm start
+echo Waiting for server...
 timeout /t 4 >nul
 
-curl -s http://localhost:80 >nul 2>&1
-if %errorlevel% equ 0 (
-    echo.
-    echo ======================================
-    echo   SETUP COMPLETE!
-    echo   http://localhost:80
-    echo   Admin: guanli / yi2san4wu6
-    echo ======================================
-) else (
-    echo.
-    echo   Server not detected on port 80 yet.
-    echo   Wait 10 seconds and try:
-    echo   http://localhost:80
-)
+echo Starting public tunnel...
+start "habie-tunnel" /B cloudflared.exe tunnel --url http://localhost:80
+echo Waiting for tunnel...
+timeout /t 10 >nul
 
+echo.
+echo ======================================
+echo   SETUP COMPLETE!
+echo ======================================
+echo.
+echo   Local:   http://localhost:80
+echo.
+echo   >>> The public URL is shown in the tunnel window. <<<
+echo   >>> Look for: https://XXXX.trycloudflare.com <<<
+echo.
+echo   Admin:   guanli / yi2san4wu6
+echo   Folder:  %DIR%
+echo.
+echo   To stop:  run stop.bat
+echo ======================================
+echo.
 pause
